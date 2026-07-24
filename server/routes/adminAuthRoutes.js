@@ -35,7 +35,11 @@ function checkPassword(password) {
   if (storedHash) {
     return verifyPassword(password, storedHash);
   }
-  const envPassword = process.env.ADMIN_PASSWORD;
+  // .trim() guards against invisible trailing whitespace/newlines from
+  // pasting or typing into a host's env var UI (bit us with CLIENT_ORIGIN
+  // and VITE_API_BASE_URL already this session) — without it, a hidden
+  // trailing character makes every login attempt fail with no visible cause.
+  const envPassword = process.env.ADMIN_PASSWORD?.trim();
   if (!envPassword) return null; // server misconfigured
   return password === envPassword;
 }
