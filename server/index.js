@@ -40,7 +40,12 @@ const app = express();
 // visitors together instead of tracking each one separately.
 app.set('trust proxy', 1);
 
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || true, credentials: true }));
+// .trim() guards against a trailing newline/whitespace sneaking in from
+// pasting into a host's env var UI — invisible in the dashboard, but an
+// invalid character in an HTTP header value, which crashes every request
+// with ERR_INVALID_CHAR the moment `cors` tries to set the response header.
+const clientOrigin = process.env.CLIENT_ORIGIN?.trim();
+app.use(cors({ origin: clientOrigin || true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
