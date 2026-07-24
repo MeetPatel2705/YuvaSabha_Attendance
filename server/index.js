@@ -12,6 +12,25 @@ const adminAttendanceRoute = require('./routes/adminAttendance');
 const adminSettingsRoute = require('./routes/adminSettings');
 const adminMembersRoute = require('./routes/adminMembers');
 const { scheduleBackup } = require('./jobs/backup');
+const { seedMembers } = require('./lib/seedMembers');
+
+// Auto-seeds the roster from an env var, for hosts with ephemeral disks
+// (Render/Replit free tiers) where the members table resets on every
+// redeploy or sleep-wake cycle and there's no shell to manually re-run
+// `npm run seed` each time. Set MEMBERS_SEED_JSON to the same content as
+// scripts/members.seed.json. No-op if the table already has rows, or if
+// the env var isn't set (e.g. local dev, where `npm run seed` is used
+// instead — see README.md).
+if (process.env.MEMBERS_SEED_JSON) {
+  try {
+    const result = seedMembers(JSON.parse(process.env.MEMBERS_SEED_JSON));
+    if (result.seeded) {
+      console.log(`[autoSeed] Seeded ${result.seeded} members from MEMBERS_SEED_JSON.`);
+    }
+  } catch (err) {
+    console.error('[autoSeed] Failed to seed from MEMBERS_SEED_JSON:', err);
+  }
+}
 
 const app = express();
 
