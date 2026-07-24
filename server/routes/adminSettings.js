@@ -5,7 +5,6 @@ const {
   setCheckinWeekday,
   getOverrideAttendanceDate,
   setOverrideAttendanceDate,
-  getLastSync,
   VALID_WEEKDAYS,
 } = require('../lib/settings');
 const { getRemark, setRemark } = require('../lib/remarks');
@@ -17,7 +16,6 @@ router.get('/settings', (_req, res) => {
   res.json({
     checkinWeekday: getCheckinWeekday(),
     validWeekdays: VALID_WEEKDAYS,
-    lastSync: getLastSync(),
   });
 });
 

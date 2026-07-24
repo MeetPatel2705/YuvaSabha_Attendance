@@ -11,7 +11,6 @@ const adminAuthRoute = require('./routes/adminAuthRoutes');
 const adminAttendanceRoute = require('./routes/adminAttendance');
 const adminSettingsRoute = require('./routes/adminSettings');
 const adminMembersRoute = require('./routes/adminMembers');
-const { scheduleAutoSync } = require('./jobs/autoSync');
 const { scheduleBackup } = require('./jobs/backup');
 
 const app = express();
@@ -46,7 +45,6 @@ app.get('*', (_req, res, next) => {
 module.exports = app;
 
 if (require.main === module) {
-  scheduleAutoSync();
   scheduleBackup();
 
   const PORT = process.env.PORT || 4000;

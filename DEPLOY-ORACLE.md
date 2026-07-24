@@ -73,8 +73,8 @@ node -v   # confirm >= 22.5 — server/package.json requires it for node:sqlite
 
 ## Phase 3 — get the app onto the VM
 
-The real roster and Excel workbook are gitignored (see `README.md`), so they
-travel by `scp`, never `git`.
+The real roster is gitignored (see `README.md`), so it travels by `scp`,
+never `git`.
 
 ```bash
 # From your own machine:
@@ -84,7 +84,6 @@ cd attendance/client && npm run build  # build locally — keeps the (maybe 1GB)
 
 ```bash
 scp -r client/dist ubuntu@<public-ip>:~/attendance/client/dist
-scp "server/data/Yuva Sabha Harinagar.xlsx" ubuntu@<public-ip>:~/attendance/server/data/
 scp server/scripts/members.seed.json ubuntu@<public-ip>:~/attendance/server/scripts/
 ```
 
@@ -99,8 +98,8 @@ npm run seed
 ```
 
 Because this is a real VM disk (not Render/Railway's ephemeral free tier),
-**you don't need `SQLITE_PATH` / `EXCEL_FILE_PATH` / `BACKUP_DIR` at all** —
-the defaults under `server/data/` persist across reboots on their own.
+**you don't need `SQLITE_PATH` / `BACKUP_DIR` at all** — the defaults under
+`server/data/` persist across reboots on their own.
 
 ## Phase 4 — run the server as a systemd service
 

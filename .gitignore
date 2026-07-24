@@ -1,15 +1,19 @@
 node_modules/
 .env
 server/data/attendance.sqlite
-server/data/attendance-live.xlsx
 server/data/backups/
 server/tests/*.sqlite
 client/dist/
 *.log
 
 # Real community roster (names + mobile numbers) — never committed to a
-# public repo. See server/scripts/members.seed.example.json and
-# server/data/Yuva Sabha Harinagar.example.xlsx for sanitized stand-ins with
-# the same structure, used for local setup/testing instead.
-server/data/Yuva Sabha Harinagar.xlsx
+# public repo. See server/scripts/members.seed.example.json for a sanitized
+# stand-in with the same structure, used for local setup/testing instead.
 server/scripts/members.seed.json
+
+# Leftover from the removed Excel sync feature — real member data (names,
+# phone numbers), kept out of git even though nothing reads these anymore.
+# Safe to delete manually; not deleted automatically since it isn't
+# reconstructable if that was a mistake.
+server/data/Yuva Sabha Harinagar.xlsx
+server/data/attendance-live.xlsx

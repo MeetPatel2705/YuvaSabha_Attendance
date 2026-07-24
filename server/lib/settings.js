@@ -3,7 +3,6 @@ const db = require('../db');
 const CHECKIN_WEEKDAY_KEY = 'checkin_weekday';
 const OVERRIDE_DATE_KEY = 'override_attendance_date';
 const ADMIN_PASSWORD_HASH_KEY = 'admin_password_hash';
-const LAST_SYNC_KEY = 'last_sync_info';
 const DEFAULT_WEEKDAY = 'Sat';
 
 // Matches the short weekday values Intl.DateTimeFormat produces (see istTime.js).
@@ -49,8 +48,9 @@ function setCheckinWeekday(weekday) {
 
 // The target date self check-ins should be recorded under, for weeks where
 // Yuva Sabha is held on a different day than usual (e.g. moved to Friday but
-// still recorded as that Saturday, since the Excel template only has
-// pre-built Saturday columns). Null/cleared means "just use today".
+// still recorded as that Saturday, keeping the weekly Saturday cadence the
+// rest of the admin panel assumes — see isSaturday() in AdminDashboard.jsx).
+// Null/cleared means "just use today".
 function getOverrideAttendanceDate() {
   const row = getStmt.get(OVERRIDE_DATE_KEY);
   return row ? row.value : null;
@@ -65,7 +65,7 @@ function setOverrideAttendanceDate(date) {
     throw new Error('Invalid date.');
   }
   if (!isSaturday(date)) {
-    throw new Error('Override date must be a Saturday — the Excel template only has Saturday columns.');
+    throw new Error('Override date must be a Saturday — Yuva Sabha attendance is tracked by Saturday.');
   }
   upsertStmt.run(OVERRIDE_DATE_KEY, date);
 }
@@ -94,18 +94,6 @@ function setAdminPasswordHash(hash) {
   upsertStmt.run(ADMIN_PASSWORD_HASH_KEY, hash);
 }
 
-// Set after every successful Excel sync (manual or the scheduled auto-sync —
-// see lib/excelSync.js), so the admin panel can show "last synced" without
-// anyone needing to read server logs.
-function getLastSync() {
-  const row = getStmt.get(LAST_SYNC_KEY);
-  return row ? JSON.parse(row.value) : null;
-}
-
-function setLastSync({ at, date, presentCount }) {
-  upsertStmt.run(LAST_SYNC_KEY, JSON.stringify({ at, date, presentCount }));
-}
-
 module.exports = {
   getCheckinWeekday,
   setCheckinWeekday,
@@ -114,8 +102,6 @@ module.exports = {
   resolveAttendanceDate,
   getAdminPasswordHash,
   setAdminPasswordHash,
-  getLastSync,
-  setLastSync,
   VALID_WEEKDAYS,
   WEEKDAY_LABELS,
 };

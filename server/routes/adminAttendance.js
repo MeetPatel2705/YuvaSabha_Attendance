@@ -2,7 +2,6 @@ const express = require('express');
 const db = require('../db');
 const { requireAdmin } = require('../lib/adminAuth');
 const { getIstNow } = require('../lib/istTime');
-const { syncDateToExcel, queueSyncDateToExcel, ensureLiveWorkbook } = require('../lib/excelSync');
 const { getRemark } = require('../lib/remarks');
 const { runBackup } = require('../lib/backup');
 
@@ -111,12 +110,11 @@ router.get('/attendance/absentees', (_req, res) => {
 });
 
 // Full member x date attendance matrix — an at-a-glance view directly on the
-// site, same idea as scanning the synced Excel sheet by eye but without
-// downloading it. Newest date first so it's visible without scrolling (the
-// sticky name column is the only other fixed thing on screen). Same
-// join-date rule as the absentees/history endpoints above: a cell for a
-// date before the member existed is `null` (not yet a member), distinct
-// from `false` (was a member, didn't attend).
+// site. Newest date first so it's visible without scrolling (the sticky
+// name column is the only other fixed thing on screen). Same join-date rule
+// as the absentees/history endpoints above: a cell for a date before the
+// member existed is `null` (not yet a member), distinct from `false` (was a
+// member, didn't attend).
 router.get('/attendance/grid', (_req, res) => {
   const dates = db.prepare('SELECT DISTINCT date FROM attendance ORDER BY date DESC').all().map((r) => r.date);
   const members = db.prepare('SELECT id, name, created_at FROM members ORDER BY name COLLATE NOCASE').all();
@@ -158,37 +156,15 @@ router.post('/checkin', (req, res) => {
     throw err;
   }
 
-  queueSyncDateToExcel(targetDate);
-
   res.json({ ok: true, name: member.name, date: targetDate });
 });
 
 router.delete('/attendance/:id', (req, res) => {
-  const row = db.prepare('SELECT date FROM attendance WHERE id = ?').get(req.params.id);
-  if (!row) {
+  const result = db.prepare('DELETE FROM attendance WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) {
     return res.status(404).json({ error: 'Attendance record not found.' });
   }
-  db.prepare('DELETE FROM attendance WHERE id = ?').run(req.params.id);
-  // Keeps a removed check-in's ✔ from lingering in an already-synced column.
-  queueSyncDateToExcel(row.date);
   res.json({ ok: true });
-});
-
-router.post('/sync', async (req, res) => {
-  const date = req.query.date || req.body?.date || getIstNow().date;
-  try {
-    const result = await syncDateToExcel(date);
-    res.json({ ok: true, ...result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Downloads the live workbook (created from the template on first use, so
-// this works even before the first sync has ever run).
-router.get('/excel', (_req, res) => {
-  const livePath = ensureLiveWorkbook();
-  res.download(livePath, 'Yuva Sabha Harinagar.xlsx');
 });
 
 // On-demand database backup, on top of the nightly 10:10 PM auto-backup

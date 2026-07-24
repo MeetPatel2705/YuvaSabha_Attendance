@@ -7,10 +7,10 @@ the box — no domain, no Cloudflare Tunnel, no reverse proxy to configure.
 Why this is safe to use where Render's free tier wasn't: a Replit project's
 filesystem is tied to your account and **persists across sleep/wake** —
 unlike Render's free tier, which rebuilds the container from scratch on
-every cold start. So SQLite, the member roster, the synced Excel workbook,
-and backups all survive a repl going to sleep and waking back up. The one
-thing that still needs handling is that it *does* sleep when idle (no
-"Always On" on the free tier), hence the keep-alive ping below.
+every cold start. So SQLite, the member roster, and backups all survive a
+repl going to sleep and waking back up. The one thing that still needs
+handling is that it *does* sleep when idle (no "Always On" on the free
+tier), hence the keep-alive ping below.
 
 ## 1. Create the Repl
 
@@ -33,8 +33,8 @@ In the Secrets pane (padlock icon):
 | `JWT_SECRET` | a long random string |
 | `NODE_ENV` | `production` |
 
-Don't set `SQLITE_PATH` / `EXCEL_FILE_PATH` / `BACKUP_DIR` — the defaults
-under `server/data/` are fine since Replit's storage is already persistent.
+Don't set `SQLITE_PATH` / `BACKUP_DIR` — the defaults under `server/data/`
+are fine since Replit's storage is already persistent.
 
 ## 3. First-time build, in the Shell tab
 
@@ -43,17 +43,14 @@ cd client && npm install && npm run build
 cd ../server && npm install
 ```
 
-## 4. Real data files
+## 4. Real data file
 
-Since Replit gives you a real file editor and shell, just create/upload
-these directly in the workspace with their real content (never via git —
-all three stay gitignored, same as any other deploy target):
+Since Replit gives you a real file editor and shell, just create/upload it
+directly in the workspace with its real content (never via git — it stays
+gitignored, same as any other deploy target):
 
 - `server/scripts/members.seed.json` — then run `npm run seed` (from
   `server/`, one time)
-- `server/data/Yuva Sabha Harinagar.xlsx` — the real, pre-built yearly
-  workbook. The live synced copy (`attendance-live.xlsx`) is created
-  automatically from this on first sync; don't upload that one yourself.
 
 ## 5. Set the Run command
 
@@ -79,10 +76,9 @@ already awake instead of cold-starting on the first real check-in. Set the
 `APP_URL` repository variable (GitHub repo Settings > Secrets and variables
 > Actions > Variables) to your repl's URL once it's live.
 
-This also benefits the 10:05 PM Excel auto-sync and the 10:10 PM backup
-(`jobs/autoSync.js` / `jobs/backup.js`) — both fire shortly after the window
-closes, while the repl is still awake from real check-in traffic, so neither
-needs its own separate wake-up ping.
+This also benefits the 10:10 PM backup (`jobs/backup.js`) — it fires shortly
+after the window closes, while the repl is still awake from real check-in
+traffic, so it doesn't need its own separate wake-up ping.
 
 ## Caveats
 

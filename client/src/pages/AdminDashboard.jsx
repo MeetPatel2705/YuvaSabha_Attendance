@@ -126,7 +126,6 @@ export default function AdminDashboard() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [checkinWeekday, setCheckinWeekdayState] = useState(null);
   const [savingWeekday, setSavingWeekday] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState('');
@@ -154,7 +153,6 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
-  const [lastSync, setLastSyncState] = useState(null);
   const [showFollowupPanel, setShowFollowupPanel] = useState(false);
   const [followupFilter, setFollowupFilter] = useState('');
   const [viewingMemberId, setViewingMemberId] = useState(null);
@@ -203,7 +201,6 @@ export default function AdminDashboard() {
   const loadSettings = useCallback(() => {
     return api.getSettings().then((s) => {
       setCheckinWeekdayState(s.checkinWeekday);
-      setLastSyncState(s.lastSync);
     }).catch((err) => {
       if (err.message.includes('authenticated') || err.message.includes('expired')) {
         navigate('/admin/login');
@@ -322,21 +319,6 @@ export default function AdminDashboard() {
       loadHistory();
     } catch (err) {
       setError(err.message);
-    }
-  }
-
-  async function handleSync() {
-    setNotice('');
-    setError('');
-    setSyncing(true);
-    try {
-      const result = await api.syncToExcel(date);
-      setNotice(`Synced ${result.presentCount} present member(s) for ${date} to Excel.`);
-      loadSettings();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSyncing(false);
     }
   }
 
@@ -547,8 +529,7 @@ export default function AdminDashboard() {
     setError('');
     try {
       const result = await api.addMember(newMemberName, newMemberMobile, newMemberGender);
-      setNotice(`Added ${result.name} to the roster (Excel row ${result.sheetRow}).`);
-      if (result.excelWarning) setError(result.excelWarning);
+      setNotice(`Added ${result.name} to the roster (row ${result.sheetRow}).`);
       setNewMemberName('');
       setNewMemberMobile('');
       setShowAddMemberForm(false);
@@ -577,7 +558,6 @@ export default function AdminDashboard() {
     try {
       const result = await api.updateMember(editingId, editName, editMobile);
       setNotice(`Updated ${result.name}.`);
-      if (result.excelWarning) setError(result.excelWarning);
       setEditingId(null);
       const updated = await api.getMembers();
       setMembers(updated);
@@ -593,7 +573,7 @@ export default function AdminDashboard() {
   async function handleDeleteMember(id, name) {
     if (
       !window.confirm(
-        `Remove ${name} from the roster? This also permanently deletes their attendance history and frees up their row in Excel. This cannot be undone.`
+        `Remove ${name} from the roster? This also permanently deletes their attendance history. This cannot be undone.`
       )
     ) {
       return;
@@ -602,9 +582,8 @@ export default function AdminDashboard() {
     setNotice('');
     setError('');
     try {
-      const result = await api.deleteMember(id);
+      await api.deleteMember(id);
       setNotice(`Removed ${name} from the roster.`);
-      if (result.excelWarning) setError(result.excelWarning);
       setEditingId(null);
       const updated = await api.getMembers();
       setMembers(updated);
@@ -651,15 +630,6 @@ export default function AdminDashboard() {
               Attendance report
             </button>
           )}
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => {
-              window.location.href = '/api/admin/excel';
-            }}
-          >
-            Download Excel
-          </button>
           <button type="button" className="secondary" onClick={handleBackup} disabled={backingUp}>
             {backingUp ? 'Backing up...' : 'Backup now'}
           </button>
@@ -822,14 +792,6 @@ export default function AdminDashboard() {
             Today
           </button>
         )}
-        <button type="button" className="secondary" onClick={handleSync} disabled={syncing}>
-          {syncing ? 'Syncing...' : 'Sync to Excel'}
-        </button>
-        <span className="muted-text last-sync-indicator">
-          {lastSync
-            ? `Last synced ${formatTimestamp(lastSync.at)} — ${formatDateLabel(lastSync.date)}, ${lastSync.presentCount} present`
-            : 'Never synced yet'}
-        </span>
       </div>
 
       {notice && (

@@ -16,17 +16,29 @@ function issueAdminToken() {
   return jwt.sign({ role: 'admin' }, getJwtSecret(), { expiresIn: TOKEN_TTL_MS / 1000 });
 }
 
+// In production the client and server may be on different origins (e.g.
+// Vercel + Render — see "Frontend and backend on different origins" in
+// DEPLOY.md), so the cookie needs sameSite:'none' to be sent on cross-site
+// requests at all, which browsers only honor when paired with secure:true.
+// Locally (same-origin via the Vite proxy, plain http://localhost) sameSite
+// 'none' would just get the cookie rejected outright without HTTPS, so this
+// only switches on in production.
+const isProd = process.env.NODE_ENV === 'production';
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: isProd ? 'none' : 'lax',
+  secure: isProd,
+};
+
 function setAdminCookie(res, token) {
-  res.cookie(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: TOKEN_TTL_MS,
-  });
+  res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: TOKEN_TTL_MS });
 }
 
 function clearAdminCookie(res) {
-  res.clearCookie(COOKIE_NAME);
+  // clearCookie must be called with the same sameSite/secure attributes the
+  // cookie was originally set with, or the browser won't recognize it as
+  // the same cookie and silently won't clear it.
+  res.clearCookie(COOKIE_NAME, cookieOptions);
 }
 
 function requireAdmin(req, res, next) {

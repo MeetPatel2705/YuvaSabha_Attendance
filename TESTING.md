@@ -4,13 +4,8 @@ Goal: test the real system (real geofence, real 9-10 PM window, real phones)
 from the mandir on Saturday, before deploying. Your laptop runs the server;
 members' phones reach it through a temporary Cloudflare tunnel URL.
 
-This system is now the authoritative writer of the real Excel sheet — there
-is no more trial-mode safety flag. The "Sync to Excel" button and the
-10:05 PM auto-sync both write for real, every time. Before running this
-Saturday for real, confirm `server/data/Yuva Sabha Harinagar.xlsx` is
-actually the current, up-to-date real workbook (if it isn't, replace it and
-delete `server/data/attendance-live.xlsx` so the live copy regenerates from
-the correct template).
+SQLite is the sole source of truth — there is no more trial-mode safety flag.
+Every check-in during the real window writes for real, every time.
 
 ## Before leaving home (Saturday afternoon)
 
@@ -65,9 +60,6 @@ Watch for:
 - [ ] Before 9 PM / after 10 PM attempts get the time-window rejection.
 - [ ] Admin panel (`<tunnel-url>/admin/login`) shows the present list
       growing live (refresh / change nothing — it reloads per date).
-- [ ] At 10:05 PM the server terminal prints
-      `[autoSync] Synced <date>: N present.` — confirming the real Excel
-      sheet was updated.
 
 ## Afterwards
 
@@ -89,10 +81,3 @@ for the real window:
   a tunnel URL (Cloudflare or ngrok) and open it yourself — the day/time/geofence
   rejection messages are real and expected outside Saturday 9-10 PM at the
   mandir; that's confirming the gate works, not a failure.
-
-**Be careful testing "Sync to Excel" itself** — sync is no longer gated by
-anything, so clicking it for a test date writes real ✔ marks into
-`server/data/attendance-live.xlsx` for that date's column. If you do it to
-verify the sync path works, delete the test attendance rows from the
-dashboard afterward so a later real sync of that same date doesn't carry
-stale test data forward.
