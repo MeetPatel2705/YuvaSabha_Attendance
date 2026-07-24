@@ -1,0 +1,1316 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, 'Segoe UI', system-ui, Roboto, sans-serif;
+  --bg: #fafaf9;
+  --fg: #1c1917;
+  --muted: #78716c;
+  --card: #ffffff;
+  --border: #e7e5e4;
+  --accent: #c2410c;
+  --accent-hover: #9a3412;
+  --accent-fg: #ffffff;
+  --success-fg: #15803d;
+  --success-bg: #f0fdf4;
+  --error-fg: #b91c1c;
+  --error-bg: #fef2f2;
+  --info-fg: #1d4ed8;
+  --info-bg: #eff6ff;
+  --warning-fg: #92400e;
+  --warning-bg: #fffbeb;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111110;
+    --fg: #f5f5f4;
+    --muted: #a8a29e;
+    --card: #1b1a19;
+    --border: #2e2c2a;
+    --accent: #ea823f;
+    --accent-hover: #f2955c;
+    --accent-fg: #1c1005;
+    --success-fg: #4ade80;
+    --success-bg: #122117;
+    --error-fg: #f87171;
+    --error-bg: #251514;
+    --info-fg: #93b4f8;
+    --info-bg: #151d2e;
+    --warning-fg: #fbbf24;
+    --warning-bg: #2a2110;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+/* Faded mandir backdrop — decorative only; content sits on opaque cards. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url('/temple-bg.webp');
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: auto min(64vh, 760px);
+  opacity: 0.32;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 30%, black 58%);
+  mask-image: linear-gradient(to bottom, transparent 30%, black 58%);
+}
+
+@media (prefers-color-scheme: dark) {
+  body::before {
+    opacity: 0.22;
+  }
+}
+
+/* Narrow screens: the temple covers the whole screen, still faded. */
+@media (max-width: 700px) {
+  body::before {
+    background-position: center bottom;
+    background-size: cover;
+    opacity: 0.18;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 4%, black 30%);
+    mask-image: linear-gradient(to bottom, transparent 4%, black 30%);
+  }
+  @media (prefers-color-scheme: dark) {
+    body::before {
+      opacity: 0.15;
+    }
+  }
+}
+
+.page {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+  min-height: 100svh;
+}
+
+.admin-page {
+  max-width: 860px;
+}
+
+h1 {
+  font-size: 1.55rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+h2 {
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.75rem;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin: 0.15rem 0 0;
+  font-size: 0.88rem;
+}
+
+/* Splash screen */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.splash-hide {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+}
+
+.splash-center {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.6rem;
+}
+
+.splash-halo {
+  position: absolute;
+  inset: -40px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent) 26%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 10%, transparent) 45%,
+    transparent 70%
+  );
+  animation: halo-breathe 2.4s ease-in-out infinite;
+}
+
+.splash-ring {
+  position: absolute;
+  inset: 22px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: ring-expand 1.8s ease-out infinite;
+}
+
+.splash-logo {
+  width: 132px;
+  height: 132px;
+  object-fit: contain;
+  position: relative;
+  filter: drop-shadow(0 6px 22px color-mix(in srgb, var(--accent) 35%, transparent));
+  animation: splash-pop 0.7s cubic-bezier(0.34, 1.45, 0.64, 1), logo-float 2.6s ease-in-out 0.7s infinite;
+}
+
+.splash-greeting {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  background: linear-gradient(
+    100deg,
+    var(--accent) 20%,
+    #f4b268 40%,
+    var(--accent) 60%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: splash-rise 0.6s ease-out 0.25s backwards, greeting-shimmer 2.2s linear 0.9s infinite;
+}
+
+.splash-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: splash-rise 0.6s ease-out 0.45s backwards;
+}
+
+.splash-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.splash-particles span {
+  position: absolute;
+  bottom: -10px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 75%, #ffd9a0);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--accent) 40%, transparent);
+  opacity: 0;
+  animation-name: particle-rise;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+
+@keyframes splash-pop {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes logo-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes halo-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.75;
+  }
+}
+
+@keyframes ring-expand {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+@keyframes greeting-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes particle-rise {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-88vh);
+    opacity: 0;
+  }
+}
+
+@keyframes splash-rise {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Public check-in header */
+
+.checkin-header {
+  text-align: center;
+  margin-bottom: 2.25rem;
+}
+
+.site-logo {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  margin-bottom: 0.85rem;
+}
+
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.checkin-header h1 {
+  font-size: 1.7rem;
+}
+
+.greeting {
+  margin: 0.6rem 0 0;
+  font-size: 1rem;
+  font-weight: 550;
+  color: var(--accent);
+}
+
+.date-line {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+/* Forms */
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.checkin-form,
+.admin-page form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 550;
+  color: var(--fg);
+}
+
+input[type='text'],
+input[type='password'],
+input[type='date'],
+select {
+  font-size: 1rem;
+  font-family: inherit;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+
+input:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+input:disabled {
+  opacity: 0.65;
+}
+
+::placeholder {
+  color: var(--muted);
+}
+
+/* Buttons */
+
+button {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: var(--accent-fg);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--muted);
+}
+
+button.danger {
+  background: var(--error-bg);
+  color: var(--error-fg);
+  border: 1px solid color-mix(in srgb, var(--error-fg) 35%, transparent);
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--error-fg);
+  color: var(--error-bg);
+}
+
+.link-button {
+  background: none;
+  color: var(--muted);
+  padding: 0.35rem 0.5rem;
+  font-weight: 550;
+  font-size: 0.88rem;
+}
+
+.link-button:hover:not(:disabled) {
+  background: none;
+  color: var(--fg);
+}
+
+.icon-button {
+  background: none;
+  color: var(--muted);
+  padding: 0.25rem 0.5rem;
+  font-weight: 400;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+.present-button {
+  width: 100%;
+  font-size: 1.05rem;
+  padding: 0.95rem;
+}
+
+/* Banners & feedback */
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.banner.success {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.banner.error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+.banner.info {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
+.banner.warning {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+
+.spinner {
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  animation: spin 0.65s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.selected-confirm {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.selected-confirm strong {
+  color: var(--fg);
+}
+
+/* Success card */
+
+.success-card {
+  text-align: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  animation: fade-up 0.3s ease-out;
+}
+
+.success-check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--success-bg);
+  color: var(--success-fg);
+  font-size: 1.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+.success-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.success-subtext {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+@keyframes fade-up {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Member search select */
+
+.member-select {
+  position: relative;
+}
+
+.member-select-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.member-select-input-wrap input {
+  padding-right: 2.2rem;
+}
+
+.member-select-clear {
+  position: absolute;
+  right: 0.3rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.member-select-clear:hover {
+  background: none;
+  color: var(--fg);
+}
+
+.member-select-list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.member-select-list li {
+  padding: 0.7rem 0.75rem;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 0.95rem;
+  border-radius: calc(var(--radius-sm) - 3px);
+}
+
+.member-select-list li.active,
+.member-select-list li:hover {
+  background: var(--bg);
+}
+
+.member-select-empty {
+  color: var(--muted);
+  cursor: default !important;
+}
+
+.member-select-empty:hover {
+  background: none !important;
+}
+
+/* Admin */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-card .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.stat-card .stat-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.4rem;
+}
+
+.stat-card.present .stat-value {
+  color: var(--success-fg);
+}
+
+.stat-card.absent .stat-value {
+  color: var(--error-fg);
+}
+
+/* Attendance trend chart — single series (present count per week), so bars
+   carry the app's own accent color rather than a separate categorical
+   palette; no legend needed for one series. */
+
+.trend-chart {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem 0.75rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.trend-chart-empty {
+  padding: 1.5rem 1.1rem;
+}
+
+.trend-chart-scroll {
+  position: relative;
+  overflow-x: auto;
+}
+
+.trend-chart-svg {
+  display: block;
+}
+
+.trend-bar {
+  transition: fill 0.1s ease;
+}
+
+.trend-bar-hit {
+  cursor: pointer;
+  outline: none;
+}
+
+.trend-bar-hit:focus-visible .trend-bar rect {
+  filter: drop-shadow(0 0 0 2px var(--accent));
+}
+
+.trend-gridline {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.trend-tick-label {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.trend-tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: var(--fg);
+  color: var(--bg);
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
+  z-index: 1;
+}
+
+.trend-tooltip strong {
+  font-size: 0.9rem;
+}
+
+.trend-tooltip-date {
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 0.1rem;
+}
+
+.trend-table-row-clickable {
+  cursor: pointer;
+}
+
+.trend-table-row-clickable:hover {
+  background: var(--card-hover, rgba(255, 255, 255, 0.04));
+}
+
+.trend-table-toggle {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.8rem;
+}
+
+.trend-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  max-height: 260px;
+  display: block;
+  overflow-y: auto;
+}
+
+.trend-table thead,
+.trend-table tbody {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.trend-table th,
+.trend-table td {
+  text-align: left;
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.trend-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.admin-controls label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+}
+
+.admin-controls input[type='date'] {
+  width: auto;
+}
+
+.muted-text.last-sync-indicator {
+  /* Compound selector, not .last-sync-indicator alone — .muted-text sets
+     white-space:nowrap and, being defined later in this file, would
+     otherwise win the cascade tie (equal specificity falls back to source
+     order) and silently truncate this text instead of wrapping it. */
+  white-space: normal;
+  /* Classic flexbox trap: a text flex item defaults to min-width:auto, which
+     can force it to its max-content width instead of wrapping/shrinking —
+     this text is long enough to overflow narrow screens (~320px) without
+     this. flex-basis:100% also puts it on its own full-width line, which it
+     needs anyway since it's the longest item in this row. */
+  min-width: 0;
+  flex-basis: 100%;
+}
+
+/* react-datepicker — restyled to match the app's theme vars (light/dark).
+   Only Saturdays are selectable (see isSaturday filterDate in
+   AdminDashboard.jsx); every other day renders in the library's own
+   `--disabled` state, which the color below just mutes further. */
+
+.date-input {
+  width: auto;
+}
+
+.react-datepicker-wrapper {
+  width: auto;
+}
+
+.react-datepicker {
+  font-family: inherit;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  color: var(--fg);
+}
+
+.react-datepicker__header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+.react-datepicker__current-month,
+.react-datepicker-year-header {
+  color: var(--fg);
+}
+
+.react-datepicker__day-name {
+  color: var(--muted);
+}
+
+.react-datepicker__day {
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+}
+
+.react-datepicker__day:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.react-datepicker__day--disabled {
+  color: var(--muted);
+  opacity: 0.35;
+}
+
+.react-datepicker__day--disabled:hover {
+  background: none;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background: var(--accent-hover);
+}
+
+.react-datepicker__day--today {
+  font-weight: 700;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: var(--muted);
+}
+
+.react-datepicker__triangle::before,
+.react-datepicker__triangle::after {
+  border-bottom-color: var(--card) !important;
+}
+
+section {
+  margin-bottom: 1.75rem;
+}
+
+.admin-add form {
+  flex-direction: row;
+  align-items: center;
+  padding: 1rem;
+}
+
+.admin-add .member-select {
+  flex: 1;
+}
+
+.weekday-form {
+  gap: 0.75rem;
+}
+
+.weekday-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--muted);
+}
+
+.weekday-label select {
+  width: auto;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+/* Members modal */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(15, 10, 5, 0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: backdrop-in 0.2s ease-out;
+}
+
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 560px;
+  max-height: min(82vh, 720px);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  animation: modal-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.modal .panel-header {
+  margin-bottom: 1rem;
+}
+
+.modal-add-form {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.modal-search {
+  margin-bottom: 0.75rem;
+  flex-shrink: 0;
+}
+
+.modal-roster {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* Wider variant for the attendance report grid — many date columns need
+   more room than the standard 560px modal. */
+.modal-wide {
+  max-width: min(96vw, 1400px);
+}
+
+.grid-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.grid-table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.grid-table th,
+.grid-table td {
+  padding: 0.4rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+.grid-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  font-weight: 600;
+  border-bottom: 2px solid var(--border);
+  z-index: 2;
+}
+
+/* Name column pinned on both axes — the one fixed reference point while
+   scrolling through however many weeks are recorded. */
+.grid-table-name-col {
+  position: sticky;
+  left: 0;
+  background: var(--card);
+  text-align: left !important;
+  border-right: 1px solid var(--border);
+  z-index: 1;
+}
+
+.grid-table thead th.grid-table-name-col {
+  z-index: 3;
+}
+
+.grid-table-today {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
+.grid-cell-present {
+  color: var(--success-fg);
+  font-weight: 600;
+}
+
+.grid-cell-absent {
+  color: var(--error-fg);
+}
+
+.grid-cell-blank {
+  color: var(--muted);
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    transform: translateY(16px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  gap: 0.75rem;
+}
+
+.panel-header h2 {
+  margin: 0;
+}
+
+.filter-row {
+  margin: 1.25rem 0 0.75rem;
+}
+
+.filter-row input {
+  max-width: 320px;
+}
+
+.admin-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .admin-lists {
+    grid-template-columns: 1fr;
+  }
+}
+
+.attendance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.attendance-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.attendance-list li span:first-child {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.member-name-link {
+  flex: 1;
+  text-align: left;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.member-name-link:hover:not(:disabled) {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.attendance-list .muted {
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding-left: 0;
+}
+
+.roster-list {
+  max-height: 380px;
+}
+
+.muted-text {
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.roster-edit-row {
+  display: block;
+}
+
+.roster-edit-form {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 0.6rem;
+  background: none;
+}
+
+.badge {
+  font-size: 0.68rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 650;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.badge.self-checkin {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.badge.admin-assisted {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
+.badge.absentee-streak {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+/* Mobile — admin panel. The button-row flex-wrap fix above handles the
+   header's 6 buttons; everything here is the remaining spots that need
+   their own adjustment at narrow widths. */
+@media (max-width: 640px) {
+  .page {
+    padding: 1.75rem 1rem 3rem;
+  }
+
+  .admin-header {
+    align-items: flex-start;
+  }
+
+  .stat-card {
+    padding: 0.75rem 0.6rem;
+  }
+
+  .stat-card .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .admin-add form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .attendance-list li {
+    flex-wrap: wrap;
+  }
+
+  .modal {
+    padding: 1rem;
+    max-height: 90vh;
+  }
+
+  .modal-backdrop {
+    padding: 0.5rem;
+  }
+
+  .filter-row input {
+    max-width: none;
+  }
+}
