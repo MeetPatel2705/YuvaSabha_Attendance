@@ -36,7 +36,10 @@ export default function CheckIn() {
   const [presentDate, setPresentDate] = useState('');
 
   useEffect(() => {
-    api.getMembers().then(setMembers).catch(() => setMessage('Could not load member list.'));
+    api.getMembers().then(setMembers).catch(() => {
+      setStatus('error');
+      setMessage('Could not load member list.');
+    });
     // Restore the success screen if this device already checked someone in today.
     api.checkinStatus(getDeviceId()).then((s) => {
       if (s.checkedIn) {
