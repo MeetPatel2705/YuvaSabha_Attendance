@@ -3,6 +3,7 @@ const db = require('../db');
 const { getIstNow, isCheckinDay, isWithinCheckinWindow, isBeforeStatusDisplayCutoff } = require('../lib/istTime');
 const { distanceFromMandirMeters, isWithinGeofence, RADIUS_METERS } = require('../lib/geofence');
 const { getCheckinWeekday, WEEKDAY_LABELS, resolveAttendanceDate } = require('../lib/settings');
+const { queueSyncDateToExcel } = require('../lib/excelSync');
 
 const router = express.Router();
 
@@ -65,8 +66,8 @@ router.post('/', (req, res) => {
   }
 
   // Normally the same as istNow.date, but on a rescheduled week this points
-  // at the Saturday the session stands in for (see lib/settings.js), keeping
-  // the weekly Saturday cadence the rest of the app assumes.
+  // at the Saturday the session stands in for (see lib/settings.js), so it
+  // still lands in an existing Excel column when synced.
   const attendanceDate = resolveAttendanceDate(istNow);
 
   if (findDeviceToday.get(attendanceDate, deviceId)) {
@@ -91,6 +92,10 @@ router.post('/', (req, res) => {
     }
     throw err;
   }
+
+  // Fire-and-forget — keeps the Excel copy current within seconds of each
+  // check-in instead of waiting for the 10:05 PM auto-sync (see lib/excelSync.js).
+  queueSyncDateToExcel(attendanceDate);
 
   res.json({ ok: true, name: member.name, date: attendanceDate });
 });

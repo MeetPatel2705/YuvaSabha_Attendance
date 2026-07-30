@@ -871,6 +871,21 @@ button.danger:hover:not(:disabled) {
   width: auto;
 }
 
+.muted-text.last-sync-indicator {
+  /* Compound selector, not .last-sync-indicator alone — .muted-text sets
+     white-space:nowrap and, being defined later in this file, would
+     otherwise win the cascade tie (equal specificity falls back to source
+     order) and silently truncate this text instead of wrapping it. */
+  white-space: normal;
+  /* Classic flexbox trap: a text flex item defaults to min-width:auto, which
+     can force it to its max-content width instead of wrapping/shrinking —
+     this text is long enough to overflow narrow screens (~320px) without
+     this. flex-basis:100% also puts it on its own full-width line, which it
+     needs anyway since it's the longest item in this row. */
+  min-width: 0;
+  flex-basis: 100%;
+}
+
 /* react-datepicker — restyled to match the app's theme vars (light/dark).
    Only Saturdays are selectable (see isSaturday filterDate in
    AdminDashboard.jsx); every other day renders in the library's own

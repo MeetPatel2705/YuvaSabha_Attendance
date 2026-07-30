@@ -35,6 +35,7 @@ export const api = {
   adminCheckin: (memberId, date) =>
     request('/admin/checkin', { method: 'POST', body: JSON.stringify({ memberId, date }) }),
   deleteAttendance: (id) => request(`/admin/attendance/${id}`, { method: 'DELETE' }),
+  syncToExcel: (date) => request(`/admin/sync?date=${encodeURIComponent(date)}`, { method: 'POST' }),
   getSettings: () => request('/admin/settings'),
   updateCheckinWeekday: (checkinWeekday) =>
     request('/admin/settings', { method: 'POST', body: JSON.stringify({ checkinWeekday }) }),

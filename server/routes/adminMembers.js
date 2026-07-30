@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAdmin } = require('../lib/adminAuth');
+const { writeMemberRowToExcel, clearMemberRowInExcel } = require('../lib/excelSync');
 const { getIstNow } = require('../lib/istTime');
 
 const router = express.Router();
@@ -38,7 +39,7 @@ function findFreeRow(gender) {
   return null;
 }
 
-router.post('/members', (req, res) => {
+router.post('/members', async (req, res) => {
   const { name, mobile, gender } = req.body || {};
 
   if (!name || !name.trim()) {
@@ -58,10 +59,11 @@ router.post('/members', (req, res) => {
     const blockLabel = gender === 'M' ? 'men' : 'women';
     return res.status(400).json({
       error:
-        `No free row slot is available for ${blockLabel} — every row in that block ` +
-        `(${BLOCK_RANGES[gender][0]}-${BLOCK_RANGES[gender][1]}) is already assigned. ` +
-        'The block range would need to be extended in the code before adding another ' +
-        `${blockLabel === 'men' ? 'man' : 'woman'}.`,
+        `No blank row is available for ${blockLabel} in the Excel sheet — every row in that ` +
+        `block is already assigned. Adding another ${blockLabel === 'men' ? 'man' : 'woman'} ` +
+        'would require inserting a new row into the spreadsheet, which isn\'t automated ' +
+        '(it risks breaking the existing formulas). Add the row manually in Excel first, ' +
+        'then ask for the row range to be extended.',
     });
   }
 
@@ -80,6 +82,18 @@ router.post('/members', (req, res) => {
     throw err;
   }
 
+  try {
+    await writeMemberRowToExcel({ sheetRow, sheetNo, name: cleanName, mobile: cleanMobile });
+  } catch (err) {
+    return res.json({
+      ok: true,
+      id: result.lastInsertRowid,
+      name: cleanName,
+      sheetRow,
+      excelWarning: `Member added, but writing their name into Excel failed: ${err.message}`,
+    });
+  }
+
   res.json({ ok: true, id: result.lastInsertRowid, name: cleanName, sheetRow });
 });
 
@@ -87,7 +101,7 @@ router.get('/members', (_req, res) => {
   res.json(listAll.all());
 });
 
-router.put('/members/:id', (req, res) => {
+router.put('/members/:id', async (req, res) => {
   const { name, mobile } = req.body || {};
 
   if (!name || !name.trim()) {
@@ -107,14 +121,32 @@ router.put('/members/:id', (req, res) => {
   const cleanMobile = mobile && mobile.trim() ? mobile.trim() : null;
   updateMember.run(cleanName, cleanMobile, member.id);
 
+  try {
+    await writeMemberRowToExcel({
+      sheetRow: member.sheet_row,
+      sheetNo: member.sheet_no,
+      name: cleanName,
+      mobile: cleanMobile,
+    });
+  } catch (err) {
+    return res.json({
+      ok: true,
+      id: member.id,
+      name: cleanName,
+      excelWarning: `Member updated, but writing the change into Excel failed: ${err.message}`,
+    });
+  }
+
   res.json({ ok: true, id: member.id, name: cleanName });
 });
 
-// Removes a member entirely — their attendance history is deleted along with
-// them (the DB's foreign key means it can't be orphaned). The frontend
-// confirms with the admin before calling this, especially when the member
-// has recorded attendance to lose.
-router.delete('/members/:id', (req, res) => {
+// Removes a member entirely — their attendance history is deleted along
+// with them (the DB's foreign key means it can't be orphaned), and their
+// Excel row is wiped so it's genuinely free for the next person, not just
+// missing from the members table with stale data still sitting in the
+// sheet. The frontend confirms with the admin before calling this,
+// especially when the member has recorded attendance to lose.
+router.delete('/members/:id', async (req, res) => {
   const member = findById.get(req.params.id);
   if (!member) {
     return res.status(404).json({ error: 'Member not found.' });
@@ -128,6 +160,16 @@ router.delete('/members/:id', (req, res) => {
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
+  }
+
+  try {
+    await clearMemberRowInExcel(member.sheet_row);
+  } catch (err) {
+    return res.json({
+      ok: true,
+      id: member.id,
+      excelWarning: `Member deleted, but clearing their row in Excel failed: ${err.message}`,
+    });
   }
 
   res.json({ ok: true, id: member.id });

@@ -9,6 +9,10 @@ const { runBackup } = require('../lib/backup');
 // would need its own separate wake-up ping to ever actually fire, since
 // node-cron can't run while the process is asleep. Piggybacking on the same
 // window real traffic already keeps awake avoids needing that.
+//
+// Five minutes after the Excel auto-sync (jobs/autoSync.js, 22:05) on
+// purpose — same reasoning, staggered so the two don't both hit the
+// database/filesystem in the same moment.
 function scheduleBackup() {
   cron.schedule(
     '10 22 * * *',
