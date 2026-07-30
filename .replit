@@ -1,0 +1,2 @@
+entrypoint = "server/index.js"
+run = "cd server && npm install --omit=dev && node index.js"
