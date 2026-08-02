@@ -42,11 +42,11 @@ export const api = {
   saveReschedule: (overrideDate, remark) =>
     request('/admin/reschedule', { method: 'POST', body: JSON.stringify({ overrideDate, remark }) }),
   clearReschedule: () => request('/admin/reschedule/clear', { method: 'POST' }),
-  addMember: (name, mobile, gender) =>
-    request('/admin/members', { method: 'POST', body: JSON.stringify({ name, mobile, gender }) }),
+  addMember: (name, mobile, gender, occupation) =>
+    request('/admin/members', { method: 'POST', body: JSON.stringify({ name, mobile, gender, occupation }) }),
   getAdminMembers: () => request('/admin/members'),
-  updateMember: (id, name, mobile) =>
-    request(`/admin/members/${id}`, { method: 'PUT', body: JSON.stringify({ name, mobile }) }),
+  updateMember: (id, name, mobile, occupation) =>
+    request(`/admin/members/${id}`, { method: 'PUT', body: JSON.stringify({ name, mobile, occupation }) }),
   deleteMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
   markReminded: (id) => request(`/admin/members/${id}/remind`, { method: 'POST' }),
   getMemberHistory: (id) => request(`/admin/members/${id}/history`),

@@ -20,7 +20,7 @@ async function findFreeRow(gender) {
 
 router.post('/members', async (req, res) => {
   try {
-    const { name, mobile, gender } = req.body || {};
+    const { name, mobile, gender, occupation } = req.body || {};
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Name is required.' });
@@ -49,12 +49,13 @@ router.post('/members', async (req, res) => {
 
     const sheetNo = sheetRow - 2;
     const cleanMobile = mobile && mobile.trim() ? mobile.trim() : null;
+    const cleanOccupation = occupation && occupation.trim() ? occupation.trim() : null;
 
     let inserted;
     try {
       const result = await query(
-        'INSERT INTO members (sheet_row, sheet_no, name, mobile, gender, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-        [sheetRow, sheetNo, cleanName, cleanMobile, gender, getIstNow().date]
+        'INSERT INTO members (sheet_row, sheet_no, name, mobile, gender, occupation, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [sheetRow, sheetNo, cleanName, cleanMobile, gender, cleanOccupation, getIstNow().date]
       );
       inserted = result.rows[0];
     } catch (err) {
@@ -74,7 +75,7 @@ router.post('/members', async (req, res) => {
 
 router.get('/members', async (_req, res) => {
   try {
-    const { rows } = await query('SELECT id, name, mobile, gender FROM members ORDER BY LOWER(name)');
+    const { rows } = await query('SELECT id, name, mobile, gender, occupation FROM members ORDER BY LOWER(name)');
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -83,7 +84,7 @@ router.get('/members', async (_req, res) => {
 
 router.put('/members/:id', async (req, res) => {
   try {
-    const { name, mobile } = req.body || {};
+    const { name, mobile, occupation } = req.body || {};
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Name is required.' });
@@ -105,7 +106,13 @@ router.put('/members/:id', async (req, res) => {
     }
 
     const cleanMobile = mobile && mobile.trim() ? mobile.trim() : null;
-    await query('UPDATE members SET name = $1, mobile = $2 WHERE id = $3', [cleanName, cleanMobile, member.id]);
+    const cleanOccupation = occupation && occupation.trim() ? occupation.trim() : null;
+    await query('UPDATE members SET name = $1, mobile = $2, occupation = $3 WHERE id = $4', [
+      cleanName,
+      cleanMobile,
+      cleanOccupation,
+      member.id,
+    ]);
 
     res.json({ ok: true, id: member.id, name: cleanName });
   } catch (err) {
@@ -163,7 +170,7 @@ router.post('/members/:id/remind', async (req, res) => {
 router.get('/members/:id/history', async (req, res) => {
   try {
     const found = await query(
-      'SELECT id, name, mobile, created_at FROM members WHERE id = $1',
+      'SELECT id, name, mobile, occupation, created_at FROM members WHERE id = $1',
       [req.params.id]
     );
     const member = found.rows[0];
@@ -186,6 +193,7 @@ router.get('/members/:id/history', async (req, res) => {
       id: member.id,
       name: member.name,
       mobile: member.mobile,
+      occupation: member.occupation,
       history,
       presentCount,
       totalCount: history.length,

@@ -37,9 +37,13 @@ function initDb() {
         name             TEXT NOT NULL,
         mobile           TEXT,
         gender           TEXT NOT NULL CHECK (gender IN ('M','F')),
+        occupation       TEXT,
         created_at       TEXT,
         last_reminded_at TEXT
       );
+      -- CREATE TABLE IF NOT EXISTS only applies to brand-new databases —
+      -- existing ones need newly added columns bolted on explicitly.
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS occupation TEXT;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_members_sheet_row ON members(sheet_row);
 
       CREATE TABLE IF NOT EXISTS attendance (

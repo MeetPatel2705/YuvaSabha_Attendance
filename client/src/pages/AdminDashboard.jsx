@@ -134,6 +134,7 @@ export default function AdminDashboard() {
   const [savingReschedule, setSavingReschedule] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberMobile, setNewMemberMobile] = useState('');
+  const [newMemberOccupation, setNewMemberOccupation] = useState('');
   const [newMemberGender, setNewMemberGender] = useState('M');
   const [creatingMember, setCreatingMember] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(false);
@@ -143,6 +144,7 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editMobile, setEditMobile] = useState('');
+  const [editOccupation, setEditOccupation] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingMember, setDeletingMember] = useState(false);
   const [history, setHistory] = useState([]);
@@ -513,11 +515,11 @@ export default function AdminDashboard() {
     setNotice('');
     setError('');
     try {
-      const result = await api.addMember(newMemberName, newMemberMobile, newMemberGender);
-      setNotice(`Added ${result.name} to the roster (Excel row ${result.sheetRow}).`);
-      if (result.excelWarning) setError(result.excelWarning);
+      const result = await api.addMember(newMemberName, newMemberMobile, newMemberGender, newMemberOccupation);
+      setNotice(`Added ${result.name} to the roster (row ${result.sheetRow}).`);
       setNewMemberName('');
       setNewMemberMobile('');
+      setNewMemberOccupation('');
       setShowAddMemberForm(false);
       const updated = await api.getMembers();
       setMembers(updated);
@@ -533,6 +535,7 @@ export default function AdminDashboard() {
     setEditingId(m.id);
     setEditName(m.name);
     setEditMobile(m.mobile || '');
+    setEditOccupation(m.occupation || '');
   }
 
   async function handleSaveEdit(e) {
@@ -542,9 +545,8 @@ export default function AdminDashboard() {
     setNotice('');
     setError('');
     try {
-      const result = await api.updateMember(editingId, editName, editMobile);
+      const result = await api.updateMember(editingId, editName, editMobile, editOccupation);
       setNotice(`Updated ${result.name}.`);
-      if (result.excelWarning) setError(result.excelWarning);
       setEditingId(null);
       const updated = await api.getMembers();
       setMembers(updated);
@@ -560,7 +562,7 @@ export default function AdminDashboard() {
   async function handleDeleteMember(id, name) {
     if (
       !window.confirm(
-        `Remove ${name} from the roster? This also permanently deletes their attendance history and frees up their row in Excel. This cannot be undone.`
+        `Remove ${name} from the roster? This also permanently deletes their attendance history. This cannot be undone.`
       )
     ) {
       return;
@@ -569,9 +571,8 @@ export default function AdminDashboard() {
     setNotice('');
     setError('');
     try {
-      const result = await api.deleteMember(id);
+      await api.deleteMember(id);
       setNotice(`Removed ${name} from the roster.`);
-      if (result.excelWarning) setError(result.excelWarning);
       setEditingId(null);
       const updated = await api.getMembers();
       setMembers(updated);
@@ -1029,6 +1030,14 @@ export default function AdminDashboard() {
                   />
                 </label>
                 <label>
+                  Occupation (optional)
+                  <input
+                    type="text"
+                    value={newMemberOccupation}
+                    onChange={(e) => setNewMemberOccupation(e.target.value)}
+                  />
+                </label>
+                <label>
                   Gender
                   <select value={newMemberGender} onChange={(e) => setNewMemberGender(e.target.value)}>
                     <option value="M">Male</option>
@@ -1058,7 +1067,12 @@ export default function AdminDashboard() {
               {roster
                 .filter((m) => {
                   const q = rosterFilter.trim().toLowerCase();
-                  return !q || m.name.toLowerCase().includes(q) || (m.mobile || '').includes(q);
+                  return (
+                    !q ||
+                    m.name.toLowerCase().includes(q) ||
+                    (m.mobile || '').includes(q) ||
+                    (m.occupation || '').toLowerCase().includes(q)
+                  );
                 })
                 .map((m) =>
                   editingId === m.id ? (
@@ -1076,6 +1090,12 @@ export default function AdminDashboard() {
                           value={editMobile}
                           onChange={(e) => setEditMobile(e.target.value)}
                           placeholder="Mobile (optional)"
+                        />
+                        <input
+                          type="text"
+                          value={editOccupation}
+                          onChange={(e) => setEditOccupation(e.target.value)}
+                          placeholder="Occupation (optional)"
                         />
                         <div className="button-row">
                           <button type="submit" disabled={!editName.trim() || savingEdit || deletingMember}>
@@ -1105,7 +1125,10 @@ export default function AdminDashboard() {
                       <button type="button" className="link-button member-name-link" onClick={() => openMemberProfile(m.id)}>
                         {m.name}
                       </button>
-                      <span className="muted-text">{m.mobile || 'No mobile'}</span>
+                      <span className="muted-text">
+                        {m.mobile || 'No mobile'}
+                        {m.occupation ? ` · ${m.occupation}` : ''}
+                      </span>
                       <button type="button" className="link-button" onClick={() => startEditMember(m)}>
                         Edit
                       </button>
@@ -1138,6 +1161,11 @@ export default function AdminDashboard() {
 
             {memberProfile && (
               <>
+                {(memberProfile.mobile || memberProfile.occupation) && (
+                  <p className="muted-text" style={{ margin: '0 0 0.75rem' }}>
+                    {[memberProfile.mobile, memberProfile.occupation].filter(Boolean).join(' · ')}
+                  </p>
+                )}
                 <div className="stat-row">
                   <div className="stat-card present">
                     <div className="stat-value">{memberProfile.presentCount}</div>
