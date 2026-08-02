@@ -1,13 +1,7 @@
-const fs = require('fs');
-const path = require('path');
 const request = require('supertest');
+const { query, resetDb, closeDb } = require('./helpers');
 
-const sqlitePath = path.join(__dirname, 'test.sqlite');
-process.env.SQLITE_PATH = sqlitePath;
-
-if (fs.existsSync(sqlitePath)) {
-  fs.unlinkSync(sqlitePath);
-}
+process.env.ADMIN_PASSWORD = 'admin-pw';
 
 // Checkin is gated on the real day/time window, so tests pin the system
 // clock to a Saturday inside 9-10 PM IST rather than relying on whenever the
@@ -17,35 +11,25 @@ beforeAll(() => {
   vi.setSystemTime(new Date('2026-07-25T16:00:00Z'));
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.useRealTimers();
+  await closeDb();
 });
 
 const app = require('../index');
-const db = require('../db');
-
-const insertMember = db.prepare(
-  'INSERT INTO members (sheet_row, sheet_no, name, mobile, gender) VALUES (?, ?, ?, ?, ?)'
-);
 
 let memberId;
 
-beforeAll(() => {
-  const row = insertMember.run(1, 1, 'Test Member', '9999999999', 'M');
-  memberId = row.lastInsertRowid;
+beforeAll(async () => {
+  await resetDb();
+  const { rows } = await query(
+    "INSERT INTO members (sheet_row, sheet_no, name, mobile, gender) VALUES (1, 1, 'Test Member', '9999999999', 'M') RETURNING id"
+  );
+  memberId = rows[0].id;
 });
 
-beforeEach(() => {
-  db.prepare('DELETE FROM attendance').run();
-});
-
-afterAll(() => {
-  if (typeof db.close === 'function') {
-    db.close();
-  }
-  if (fs.existsSync(process.env.SQLITE_PATH)) {
-    fs.unlinkSync(process.env.SQLITE_PATH);
-  }
+beforeEach(async () => {
+  await query('DELETE FROM attendance');
 });
 
 it('returns a healthy response on /api/health', async () => {
@@ -70,9 +54,9 @@ it('allows checkin within the day/time/geofence window and stores attendance', a
   expect(res.body.name).toBe('Test Member');
   expect(res.body.date).toBeDefined();
 
-  const stored = db.prepare('SELECT * FROM attendance WHERE device_id = ?').get('device-1');
-  expect(stored).toBeTruthy();
-  expect(stored.member_id).toBe(memberId);
+  const { rows } = await query('SELECT * FROM attendance WHERE device_id = $1', ['device-1']);
+  expect(rows[0]).toBeTruthy();
+  expect(rows[0].member_id).toBe(memberId);
 });
 
 it('rejects checkin from outside the geofence', async () => {

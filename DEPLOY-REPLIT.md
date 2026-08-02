@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-08):** the app now stores data in hosted Postgres (see DEPLOY.md) — this Replit path is no longer used. Kept as history.
+
 # Deploying to Replit (free)
 
 A simpler free option than the Oracle VM route in `DEPLOY-ORACLE.md`: Replit

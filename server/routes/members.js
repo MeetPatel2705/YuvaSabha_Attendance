@@ -1,13 +1,15 @@
 const express = require('express');
-const db = require('../db');
+const { query } = require('../db');
 
 const router = express.Router();
 
-router.get('/', (_req, res) => {
-  const members = db
-    .prepare('SELECT id, name FROM members ORDER BY name COLLATE NOCASE')
-    .all();
-  res.json(members);
+router.get('/', async (_req, res) => {
+  try {
+    const { rows } = await query('SELECT id, name FROM members ORDER BY LOWER(name)');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

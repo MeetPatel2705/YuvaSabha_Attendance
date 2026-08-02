@@ -1,9 +1,8 @@
-const db = require('../db');
+const { query } = require('../db');
 
 const CHECKIN_WEEKDAY_KEY = 'checkin_weekday';
 const OVERRIDE_DATE_KEY = 'override_attendance_date';
 const ADMIN_PASSWORD_HASH_KEY = 'admin_password_hash';
-const LAST_SYNC_KEY = 'last_sync_info';
 const DEFAULT_WEEKDAY = 'Sat';
 
 // Matches the short weekday values Intl.DateTimeFormat produces (see istTime.js).
@@ -28,54 +27,63 @@ function isSaturday(isoDate) {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 6;
 }
 
-const getStmt = db.prepare('SELECT value FROM settings WHERE key = ?');
-const upsertStmt = db.prepare(
-  `INSERT INTO settings (key, value) VALUES (?, ?)
-   ON CONFLICT(key) DO UPDATE SET value = excluded.value`
-);
-const deleteStmt = db.prepare('DELETE FROM settings WHERE key = ?');
-
-function getCheckinWeekday() {
-  const row = getStmt.get(CHECKIN_WEEKDAY_KEY);
-  return row ? row.value : DEFAULT_WEEKDAY;
+async function getSetting(key) {
+  const { rows } = await query('SELECT value FROM settings WHERE key = $1', [key]);
+  return rows[0] ? rows[0].value : null;
 }
 
-function setCheckinWeekday(weekday) {
+async function upsertSetting(key, value) {
+  await query(
+    `INSERT INTO settings (key, value) VALUES ($1, $2)
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+    [key, value]
+  );
+}
+
+async function deleteSetting(key) {
+  await query('DELETE FROM settings WHERE key = $1', [key]);
+}
+
+async function getCheckinWeekday() {
+  return (await getSetting(CHECKIN_WEEKDAY_KEY)) || DEFAULT_WEEKDAY;
+}
+
+async function setCheckinWeekday(weekday) {
   if (!VALID_WEEKDAYS.includes(weekday)) {
     throw new Error('Invalid weekday.');
   }
-  upsertStmt.run(CHECKIN_WEEKDAY_KEY, weekday);
+  await upsertSetting(CHECKIN_WEEKDAY_KEY, weekday);
 }
 
 // The target date self check-ins should be recorded under, for weeks where
 // Yuva Sabha is held on a different day than usual (e.g. moved to Friday but
-// still recorded as that Saturday, since the Excel template only has
-// pre-built Saturday columns). Null/cleared means "just use today".
-function getOverrideAttendanceDate() {
-  const row = getStmt.get(OVERRIDE_DATE_KEY);
-  return row ? row.value : null;
+// still recorded as that Saturday, keeping the weekly Saturday cadence the
+// attendance history and Excel export are organized around). Null/cleared
+// means "just use today".
+async function getOverrideAttendanceDate() {
+  return getSetting(OVERRIDE_DATE_KEY);
 }
 
-function setOverrideAttendanceDate(date) {
+async function setOverrideAttendanceDate(date) {
   if (date === null) {
-    deleteStmt.run(OVERRIDE_DATE_KEY);
+    await deleteSetting(OVERRIDE_DATE_KEY);
     return;
   }
   if (!DATE_RE.test(date)) {
     throw new Error('Invalid date.');
   }
   if (!isSaturday(date)) {
-    throw new Error('Override date must be a Saturday — the Excel template only has Saturday columns.');
+    throw new Error('Override date must be a Saturday — Yuva Sabha attendance is tracked by Saturday.');
   }
-  upsertStmt.run(OVERRIDE_DATE_KEY, date);
+  await upsertSetting(OVERRIDE_DATE_KEY, date);
 }
 
 // Resolves which date a check-in happening right now should be recorded
 // under. The override only applies up to and including its own date — once
 // it's in the past it's treated as expired automatically, so forgetting to
 // clear it can't silently misdate a later week.
-function resolveAttendanceDate(istNow) {
-  const override = getOverrideAttendanceDate();
+async function resolveAttendanceDate(istNow) {
+  const override = await getOverrideAttendanceDate();
   if (override && override >= istNow.date) {
     return override;
   }
@@ -85,25 +93,12 @@ function resolveAttendanceDate(istNow) {
 // Once the admin changes their password from the UI, the hash lives here
 // instead of the ADMIN_PASSWORD env var (see routes/adminAuthRoutes.js,
 // which falls back to the env var until this is ever set).
-function getAdminPasswordHash() {
-  const row = getStmt.get(ADMIN_PASSWORD_HASH_KEY);
-  return row ? row.value : null;
+async function getAdminPasswordHash() {
+  return getSetting(ADMIN_PASSWORD_HASH_KEY);
 }
 
-function setAdminPasswordHash(hash) {
-  upsertStmt.run(ADMIN_PASSWORD_HASH_KEY, hash);
-}
-
-// Set after every successful Excel sync (manual or the scheduled auto-sync —
-// see lib/excelSync.js), so the admin panel can show "last synced" without
-// anyone needing to read server logs.
-function getLastSync() {
-  const row = getStmt.get(LAST_SYNC_KEY);
-  return row ? JSON.parse(row.value) : null;
-}
-
-function setLastSync({ at, date, presentCount }) {
-  upsertStmt.run(LAST_SYNC_KEY, JSON.stringify({ at, date, presentCount }));
+async function setAdminPasswordHash(hash) {
+  await upsertSetting(ADMIN_PASSWORD_HASH_KEY, hash);
 }
 
 module.exports = {
@@ -114,8 +109,6 @@ module.exports = {
   resolveAttendanceDate,
   getAdminPasswordHash,
   setAdminPasswordHash,
-  getLastSync,
-  setLastSync,
   VALID_WEEKDAYS,
   WEEKDAY_LABELS,
 };

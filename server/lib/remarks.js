@@ -1,23 +1,20 @@
-const db = require('../db');
+const { query } = require('../db');
 
-const getStmt = db.prepare('SELECT remark FROM date_remarks WHERE date = ?');
-const upsertStmt = db.prepare(
-  `INSERT INTO date_remarks (date, remark) VALUES (?, ?)
-   ON CONFLICT(date) DO UPDATE SET remark = excluded.remark`
-);
-const deleteStmt = db.prepare('DELETE FROM date_remarks WHERE date = ?');
-
-function getRemark(date) {
-  const row = getStmt.get(date);
-  return row ? row.remark : null;
+async function getRemark(date) {
+  const { rows } = await query('SELECT remark FROM date_remarks WHERE date = $1', [date]);
+  return rows[0] ? rows[0].remark : null;
 }
 
-function setRemark(date, remark) {
+async function setRemark(date, remark) {
   if (!remark || !remark.trim()) {
-    deleteStmt.run(date);
+    await query('DELETE FROM date_remarks WHERE date = $1', [date]);
     return;
   }
-  upsertStmt.run(date, remark.trim());
+  await query(
+    `INSERT INTO date_remarks (date, remark) VALUES ($1, $2)
+     ON CONFLICT (date) DO UPDATE SET remark = EXCLUDED.remark`,
+    [date, remark.trim()]
+  );
 }
 
 module.exports = { getRemark, setRemark };

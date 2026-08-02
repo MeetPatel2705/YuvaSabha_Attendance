@@ -30,8 +30,8 @@ function lockedResponse(res, retryAfterSeconds) {
 
 // True once the password has been changed from the UI; before that, the
 // plain ADMIN_PASSWORD env var is the source of truth (initial bootstrap).
-function checkPassword(password) {
-  const storedHash = getAdminPasswordHash();
+async function checkPassword(password) {
+  const storedHash = await getAdminPasswordHash();
   if (storedHash) {
     return verifyPassword(password, storedHash);
   }
@@ -44,28 +44,32 @@ function checkPassword(password) {
   return password === envPassword;
 }
 
-router.post('/login', (req, res) => {
-  const retryAfter = loginLimiter.check(req);
-  if (retryAfter) return lockedResponse(res, retryAfter);
+router.post('/login', async (req, res) => {
+  try {
+    const retryAfter = loginLimiter.check(req);
+    if (retryAfter) return lockedResponse(res, retryAfter);
 
-  const { password } = req.body || {};
-  if (!password) {
-    return res.status(400).json({ error: 'Password is required.' });
-  }
+    const { password } = req.body || {};
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required.' });
+    }
 
-  const valid = checkPassword(password);
-  if (valid === null) {
-    return res.status(500).json({ error: 'Server misconfigured: ADMIN_PASSWORD not set.' });
-  }
-  if (!valid) {
-    loginLimiter.recordFailure(req);
-    return res.status(401).json({ error: 'Incorrect password.' });
-  }
+    const valid = await checkPassword(password);
+    if (valid === null) {
+      return res.status(500).json({ error: 'Server misconfigured: ADMIN_PASSWORD not set.' });
+    }
+    if (!valid) {
+      loginLimiter.recordFailure(req);
+      return res.status(401).json({ error: 'Incorrect password.' });
+    }
 
-  loginLimiter.recordSuccess(req);
-  const token = issueAdminToken();
-  setAdminCookie(res, token);
-  res.json({ ok: true });
+    loginLimiter.recordSuccess(req);
+    const token = issueAdminToken();
+    setAdminCookie(res, token);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/logout', (_req, res) => {
@@ -73,30 +77,34 @@ router.post('/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/change-password', requireAdmin, (req, res) => {
-  const retryAfter = changePasswordLimiter.check(req);
-  if (retryAfter) return lockedResponse(res, retryAfter);
+router.post('/change-password', requireAdmin, async (req, res) => {
+  try {
+    const retryAfter = changePasswordLimiter.check(req);
+    if (retryAfter) return lockedResponse(res, retryAfter);
 
-  const { currentPassword, newPassword } = req.body || {};
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: 'Current and new password are required.' });
-  }
-  if (newPassword.length < MIN_PASSWORD_LENGTH) {
-    return res.status(400).json({ error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
-  }
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required.' });
+    }
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
+    }
 
-  const valid = checkPassword(currentPassword);
-  if (valid === null) {
-    return res.status(500).json({ error: 'Server misconfigured: ADMIN_PASSWORD not set.' });
-  }
-  if (!valid) {
-    changePasswordLimiter.recordFailure(req);
-    return res.status(401).json({ error: 'Current password is incorrect.' });
-  }
+    const valid = await checkPassword(currentPassword);
+    if (valid === null) {
+      return res.status(500).json({ error: 'Server misconfigured: ADMIN_PASSWORD not set.' });
+    }
+    if (!valid) {
+      changePasswordLimiter.recordFailure(req);
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
 
-  changePasswordLimiter.recordSuccess(req);
-  setAdminPasswordHash(hashPassword(newPassword));
-  res.json({ ok: true });
+    changePasswordLimiter.recordSuccess(req);
+    await setAdminPasswordHash(hashPassword(newPassword));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

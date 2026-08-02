@@ -1,25 +1,16 @@
-const fs = require('fs');
-const path = require('path');
 const request = require('supertest');
+const { resetDb, closeDb } = require('./helpers');
 
-const sqlitePath = path.join(__dirname, 'test-admin-auth.sqlite');
-process.env.SQLITE_PATH = sqlitePath;
 process.env.ADMIN_PASSWORD = 'original-password';
 
-if (fs.existsSync(sqlitePath)) {
-  fs.unlinkSync(sqlitePath);
-}
-
 const app = require('../index');
-const db = require('../db');
 
-afterAll(() => {
-  if (typeof db.close === 'function') {
-    db.close();
-  }
-  if (fs.existsSync(sqlitePath)) {
-    fs.unlinkSync(sqlitePath);
-  }
+beforeAll(async () => {
+  await resetDb();
+});
+
+afterAll(async () => {
+  await closeDb();
 });
 
 it('rejects login with the wrong password', async () => {

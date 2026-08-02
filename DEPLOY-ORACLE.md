@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-08):** the app now stores data in hosted Postgres (see DEPLOY.md) — this Oracle path was never completed and its is-a.dev NS-delegation instructions turned out to be disallowed by is-a.dev policy. Kept as history.
+
 # Deploying to Oracle Cloud (Always Free)
 
 A genuinely free-forever alternative to Render/Railway (see `DEPLOY.md`): an

@@ -5,7 +5,6 @@ const {
   setCheckinWeekday,
   getOverrideAttendanceDate,
   setOverrideAttendanceDate,
-  getLastSync,
   VALID_WEEKDAYS,
 } = require('../lib/settings');
 const { getRemark, setRemark } = require('../lib/remarks');
@@ -13,46 +12,57 @@ const { getRemark, setRemark } = require('../lib/remarks');
 const router = express.Router();
 router.use(requireAdmin);
 
-router.get('/settings', (_req, res) => {
-  res.json({
-    checkinWeekday: getCheckinWeekday(),
-    validWeekdays: VALID_WEEKDAYS,
-    lastSync: getLastSync(),
-  });
+router.get('/settings', async (_req, res) => {
+  try {
+    res.json({
+      checkinWeekday: await getCheckinWeekday(),
+      validWeekdays: VALID_WEEKDAYS,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post('/settings', (req, res) => {
+router.post('/settings', async (req, res) => {
   const { checkinWeekday } = req.body || {};
   try {
-    setCheckinWeekday(checkinWeekday);
+    await setCheckinWeekday(checkinWeekday);
     res.json({ ok: true, checkinWeekday });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-router.get('/reschedule', (_req, res) => {
-  const overrideDate = getOverrideAttendanceDate();
-  res.json({ overrideDate, remark: overrideDate ? getRemark(overrideDate) : null });
+router.get('/reschedule', async (_req, res) => {
+  try {
+    const overrideDate = await getOverrideAttendanceDate();
+    res.json({ overrideDate, remark: overrideDate ? await getRemark(overrideDate) : null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post('/reschedule', (req, res) => {
+router.post('/reschedule', async (req, res) => {
   const { overrideDate, remark } = req.body || {};
   if (!overrideDate) {
     return res.status(400).json({ error: 'overrideDate is required.' });
   }
   try {
-    setOverrideAttendanceDate(overrideDate);
-    setRemark(overrideDate, remark || '');
-    res.json({ ok: true, overrideDate, remark: getRemark(overrideDate) });
+    await setOverrideAttendanceDate(overrideDate);
+    await setRemark(overrideDate, remark || '');
+    res.json({ ok: true, overrideDate, remark: await getRemark(overrideDate) });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-router.post('/reschedule/clear', (_req, res) => {
-  setOverrideAttendanceDate(null);
-  res.json({ ok: true });
+router.post('/reschedule/clear', async (_req, res) => {
+  try {
+    await setOverrideAttendanceDate(null);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

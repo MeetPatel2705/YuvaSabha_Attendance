@@ -11,20 +11,17 @@ const adminAuthRoute = require('./routes/adminAuthRoutes');
 const adminAttendanceRoute = require('./routes/adminAttendance');
 const adminSettingsRoute = require('./routes/adminSettings');
 const adminMembersRoute = require('./routes/adminMembers');
-const { scheduleAutoSync } = require('./jobs/autoSync');
-const { scheduleBackup } = require('./jobs/backup');
 const { seedMembers } = require('./lib/seedMembers');
 
-// Auto-seeds the roster from an env var, for hosts with ephemeral disks
-// (Render/Replit free tiers) where the members table resets on every
-// redeploy or sleep-wake cycle and there's no shell to manually re-run
-// `npm run seed` each time. Set MEMBERS_SEED_JSON to the same content as
-// scripts/members.seed.json. No-op if the table already has rows, or if
-// the env var isn't set (e.g. local dev, where `npm run seed` is used
-// instead — see README.md).
-if (process.env.MEMBERS_SEED_JSON) {
+// Auto-seeds the roster from an env var into a brand-new empty database, so
+// a fresh deploy comes up with the roster without a manual step. Set
+// MEMBERS_SEED_JSON to the same content as scripts/members.seed.json. No-op
+// if the members table already has rows, or if the env var isn't set (e.g.
+// local dev, where `npm run seed` is used instead — see README.md).
+async function autoSeed() {
+  if (!process.env.MEMBERS_SEED_JSON) return;
   try {
-    const result = seedMembers(JSON.parse(process.env.MEMBERS_SEED_JSON));
+    const result = await seedMembers(JSON.parse(process.env.MEMBERS_SEED_JSON));
     if (result.seeded) {
       console.log(`[autoSeed] Seeded ${result.seeded} members from MEMBERS_SEED_JSON.`);
     }
@@ -70,11 +67,10 @@ app.get('*', (_req, res, next) => {
 module.exports = app;
 
 if (require.main === module) {
-  scheduleAutoSync();
-  scheduleBackup();
-
   const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => {
-    console.log(`Yuva Sabha attendance server listening on port ${PORT}`);
+  autoSeed().finally(() => {
+    app.listen(PORT, () => {
+      console.log(`Yuva Sabha attendance server listening on port ${PORT}`);
+    });
   });
 }

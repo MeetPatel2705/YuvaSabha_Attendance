@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { api } from '../lib/api';
+import { api, API_BASE_URL } from '../lib/api';
 import MemberSearchSelect from '../components/MemberSearchSelect';
 import AttendanceTrendChart from '../components/AttendanceTrendChart';
 
@@ -126,7 +126,6 @@ export default function AdminDashboard() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [checkinWeekday, setCheckinWeekdayState] = useState(null);
   const [savingWeekday, setSavingWeekday] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState('');
@@ -154,14 +153,12 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
-  const [lastSync, setLastSyncState] = useState(null);
   const [showFollowupPanel, setShowFollowupPanel] = useState(false);
   const [followupFilter, setFollowupFilter] = useState('');
   const [viewingMemberId, setViewingMemberId] = useState(null);
   const [memberProfile, setMemberProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState('');
-  const [backingUp, setBackingUp] = useState(false);
   const [showGridPanel, setShowGridPanel] = useState(false);
   const [gridFilter, setGridFilter] = useState('');
   const [grid, setGrid] = useState(null);
@@ -203,7 +200,6 @@ export default function AdminDashboard() {
   const loadSettings = useCallback(() => {
     return api.getSettings().then((s) => {
       setCheckinWeekdayState(s.checkinWeekday);
-      setLastSyncState(s.lastSync);
     }).catch((err) => {
       if (err.message.includes('authenticated') || err.message.includes('expired')) {
         navigate('/admin/login');
@@ -322,35 +318,6 @@ export default function AdminDashboard() {
       loadHistory();
     } catch (err) {
       setError(err.message);
-    }
-  }
-
-  async function handleSync() {
-    setNotice('');
-    setError('');
-    setSyncing(true);
-    try {
-      const result = await api.syncToExcel(date);
-      setNotice(`Synced ${result.presentCount} present member(s) for ${date} to Excel.`);
-      loadSettings();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  async function handleBackup() {
-    setNotice('');
-    setError('');
-    setBackingUp(true);
-    try {
-      await api.runBackup();
-      setNotice('Database backup created.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBackingUp(false);
     }
   }
 
@@ -655,13 +622,10 @@ export default function AdminDashboard() {
             type="button"
             className="secondary"
             onClick={() => {
-              window.location.href = '/api/admin/excel';
+              window.location.href = `${API_BASE_URL}/api/admin/excel`;
             }}
           >
             Download Excel
-          </button>
-          <button type="button" className="secondary" onClick={handleBackup} disabled={backingUp}>
-            {backingUp ? 'Backing up...' : 'Backup now'}
           </button>
           <button type="button" className="secondary" onClick={() => setShowPasswordPanel(true)}>
             Change password
@@ -822,14 +786,6 @@ export default function AdminDashboard() {
             Today
           </button>
         )}
-        <button type="button" className="secondary" onClick={handleSync} disabled={syncing}>
-          {syncing ? 'Syncing...' : 'Sync to Excel'}
-        </button>
-        <span className="muted-text last-sync-indicator">
-          {lastSync
-            ? `Last synced ${formatTimestamp(lastSync.at)} — ${formatDateLabel(lastSync.date)}, ${lastSync.presentCount} present`
-            : 'Never synced yet'}
-        </span>
       </div>
 
       {notice && (

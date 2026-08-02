@@ -1,51 +1,47 @@
-const fs = require('fs');
-const path = require('path');
 const request = require('supertest');
+const { query, resetDb, closeDb } = require('./helpers');
 
-const sqlitePath = path.join(__dirname, 'test-absentees.sqlite');
-process.env.SQLITE_PATH = sqlitePath;
 process.env.ADMIN_PASSWORD = 'admin-pw';
 
-if (fs.existsSync(sqlitePath)) {
-  fs.unlinkSync(sqlitePath);
-}
-
 const app = require('../index');
-const db = require('../db');
-
-const insertMember = db.prepare(
-  'INSERT INTO members (sheet_row, sheet_no, name, mobile, gender) VALUES (?, ?, ?, ?, ?)'
-);
-const insertAttendance = db.prepare(
-  `INSERT INTO attendance (member_id, date, checkin_time, source, device_id, distance_meters)
-   VALUES (?, ?, ?, 'admin-assisted', NULL, NULL)`
-);
 
 // Four recorded Saturdays, oldest first.
 const DATES = ['2026-06-27', '2026-07-04', '2026-07-11', '2026-07-18'];
 
-let chronic; // absent all 4 -> streak 4
-let borderline; // present on the 2nd-oldest, absent the last 2 -> streak 2 (below threshold 3)
-let justOverThreshold; // present only on the oldest -> absent the most recent 3 -> streak 3
-let regular; // present on the most recent -> streak 0
+async function insertMember(sheetRow, name, mobile) {
+  const { rows } = await query(
+    'INSERT INTO members (sheet_row, sheet_no, name, mobile, gender) VALUES ($1, 1, $2, $3, $4) RETURNING id',
+    [sheetRow, name, mobile, 'M']
+  );
+  return rows[0].id;
+}
 
-beforeAll(() => {
-  chronic = insertMember.run(1, 1, 'Chronic Absentee', '1', 'M').lastInsertRowid;
-  borderline = insertMember.run(2, 1, 'Borderline Member', '2', 'M').lastInsertRowid;
-  justOverThreshold = insertMember.run(3, 1, 'Just Over Threshold', '3', 'M').lastInsertRowid;
-  regular = insertMember.run(4, 1, 'Regular Member', '4', 'M').lastInsertRowid;
+async function insertAttendance(memberId, date) {
+  await query(
+    `INSERT INTO attendance (member_id, date, checkin_time, source, device_id, distance_meters)
+     VALUES ($1, $2, $3, 'admin-assisted', NULL, NULL)`,
+    [memberId, date, new Date().toISOString()]
+  );
+}
+
+beforeAll(async () => {
+  await resetDb();
+  const chronic = await insertMember(1, 'Chronic Absentee', '1'); // absent all 4 -> streak 4
+  const borderline = await insertMember(2, 'Borderline Member', '2'); // streak 2 (below threshold 3)
+  const justOverThreshold = await insertMember(3, 'Just Over Threshold', '3'); // streak 3
+  const regular = await insertMember(4, 'Regular Member', '4'); // streak 0
   // Present every week, purely so all 4 dates have at least one attendance
   // row and stay in the "recorded dates" universe the endpoint derives from
   // DISTINCT date — mirrors real usage where some member always shows up.
-  const alwaysPresent = insertMember.run(5, 1, 'Always Present', '5', 'M').lastInsertRowid;
+  const alwaysPresent = await insertMember(5, 'Always Present', '5');
 
-  const now = new Date().toISOString();
-  insertAttendance.run(borderline, DATES[1], now);
-  insertAttendance.run(justOverThreshold, DATES[0], now);
-  insertAttendance.run(regular, DATES[3], now);
+  await insertAttendance(borderline, DATES[1]);
+  await insertAttendance(justOverThreshold, DATES[0]);
+  await insertAttendance(regular, DATES[3]);
   for (const date of DATES) {
-    insertAttendance.run(alwaysPresent, date, now);
+    await insertAttendance(alwaysPresent, date);
   }
+  void chronic;
 });
 
 let agent;
@@ -54,13 +50,8 @@ beforeAll(async () => {
   await agent.post('/api/admin/login').send({ password: 'admin-pw' });
 });
 
-afterAll(() => {
-  if (typeof db.close === 'function') {
-    db.close();
-  }
-  if (fs.existsSync(sqlitePath)) {
-    fs.unlinkSync(sqlitePath);
-  }
+afterAll(async () => {
+  await closeDb();
 });
 
 it('flags only members absent 3+ recorded Saturdays in a row, most-missed first', async () => {

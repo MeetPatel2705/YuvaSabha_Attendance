@@ -3,7 +3,7 @@
 // client). Set at build time when the client and server are on different
 // origins (e.g. client on Vercel, server on Render) — see "Frontend and
 // backend on different origins" in DEPLOY.md.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE_URL}/api${path}`, {
@@ -35,7 +35,6 @@ export const api = {
   adminCheckin: (memberId, date) =>
     request('/admin/checkin', { method: 'POST', body: JSON.stringify({ memberId, date }) }),
   deleteAttendance: (id) => request(`/admin/attendance/${id}`, { method: 'DELETE' }),
-  syncToExcel: (date) => request(`/admin/sync?date=${encodeURIComponent(date)}`, { method: 'POST' }),
   getSettings: () => request('/admin/settings'),
   updateCheckinWeekday: (checkinWeekday) =>
     request('/admin/settings', { method: 'POST', body: JSON.stringify({ checkinWeekday }) }),
@@ -51,5 +50,4 @@ export const api = {
   deleteMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
   markReminded: (id) => request(`/admin/members/${id}/remind`, { method: 'POST' }),
   getMemberHistory: (id) => request(`/admin/members/${id}/history`),
-  runBackup: () => request('/admin/backup', { method: 'POST' }),
 };
