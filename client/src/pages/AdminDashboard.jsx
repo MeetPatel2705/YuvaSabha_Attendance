@@ -174,9 +174,14 @@ export default function AdminDashboard() {
     attendanceListsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  const loadAttendance = useCallback(async (d) => {
-    setLoading(true);
-    setError('');
+  // quiet: refresh in the background without the loading spinner or error
+  // banner — used by the auto-refresh poll below, where a transient network
+  // blip should just silently retry on the next tick instead of flashing UI.
+  const loadAttendance = useCallback(async (d, { quiet = false } = {}) => {
+    if (!quiet) {
+      setLoading(true);
+      setError('');
+    }
     try {
       const data = await api.getAttendance(d);
       setAttendance(data);
@@ -185,9 +190,9 @@ export default function AdminDashboard() {
         navigate('/admin/login');
         return;
       }
-      setError(err.message);
+      if (!quiet) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, [navigate]);
 
@@ -282,6 +287,24 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadAttendance(date);
   }, [date, loadAttendance]);
+
+  // The date live check-ins are currently landing under: today, or the
+  // active reschedule override when one is set (see lib/settings.js on the
+  // server — check-ins on a rescheduled week record under the override date).
+  const liveDate = activeOverrideDate && activeOverrideDate >= TODAY ? activeOverrideDate : TODAY;
+
+  // Auto-refresh while viewing the live date, so check-ins appear as they
+  // land without manual reloading (most useful during the 9-10 PM window).
+  // Quiet so there's no spinner flash; skipped while the tab is hidden.
+  useEffect(() => {
+    if (date !== liveDate) return undefined;
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadAttendance(date, { quiet: true });
+      }
+    }, 30000);
+    return () => clearInterval(id);
+  }, [date, liveDate, loadAttendance]);
 
   const filteredPresent = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -786,6 +809,9 @@ export default function AdminDashboard() {
           <button type="button" className="secondary" onClick={() => setDate(TODAY)}>
             Today
           </button>
+        )}
+        {date === liveDate && (
+          <span className="muted-text">Auto-updates every 30s</span>
         )}
       </div>
 
