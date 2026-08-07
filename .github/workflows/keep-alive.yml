@@ -2,9 +2,9 @@ name: Keep hosted instance awake
 
 # Runs every day at 20:55 IST (15:25 UTC) — a few minutes before the 9 PM
 # check-in window normally opens, hitting the side-effect-free /api/health
-# endpoint so a sleeping free-tier instance (e.g. Replit, which sleeps when
-# idle but keeps its filesystem intact across sleep/wake) is already awake
-# by the time real members try to check in.
+# endpoint so the sleeping free-tier Render instance is already awake by the
+# time real members try to check in. (Data lives in Neon Postgres, so a
+# Render sleep/wake cycle costs nothing but the cold-start delay.)
 #
 # Runs daily rather than only on Saturdays on purpose: the admin panel can
 # reschedule Yuva Sabha to a different weekday for a given week (see
@@ -13,8 +13,8 @@ name: Keep hosted instance awake
 # that turns out to be.
 #
 # Requires a repository variable APP_URL (Settings > Secrets and variables >
-# Actions > Variables) set to the deployed app's base URL, e.g.
-# https://your-repl-name.your-username.repl.co — set once it's live.
+# Actions > Variables) set to the Render backend's base URL, e.g.
+# https://yuvasabha-attendance.onrender.com
 #
 # Note: GitHub disables scheduled workflows on repos with no commit activity
 # for 60+ days. If this silently stops firing, re-enable it from the

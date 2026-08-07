@@ -78,8 +78,9 @@ changes, edit that file and redeploy.
 
 ## Historical notes
 
-`DEPLOY-REPLIT.md` and `DEPLOY-ORACLE.md` describe superseded free-hosting
-attempts from the SQLite era and no longer reflect how the app works — kept
-only as history. (Replit's free workspace URL turned out to be tied to an
-open editor session; Oracle signup card verification failed repeatedly; the
-Postgres migration made both unnecessary.)
+Two free-hosting attempts from the SQLite era were abandoned before the
+current Vercel + Render + Neon setup: Replit (its free workspace URL turned
+out to be tied to an open editor session, so the app went down whenever the
+browser was closed) and Oracle Cloud (signup card verification failed
+repeatedly). The Replit config and its deploy guide have been deleted;
+`DEPLOY-ORACLE.md` is kept only as history.

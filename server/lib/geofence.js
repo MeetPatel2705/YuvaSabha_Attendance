@@ -3,7 +3,9 @@
 // non-geofenced attendance site is used instead.
 const MANDIR_LAT = 22.314688;
 const MANDIR_LNG = 73.153199;
-const RADIUS_METERS = 50;
+// Widened from 50m after on-site testing: phones inside the sabha hall read
+// as outside the fence (indoor GPS drift + the hall sits off the pin).
+const RADIUS_METERS = 100;
 
 const EARTH_RADIUS_METERS = 6371000;
 

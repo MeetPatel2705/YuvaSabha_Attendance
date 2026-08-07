@@ -62,11 +62,11 @@ it('allows checkin within the day/time/geofence window and stores attendance', a
 it('rejects checkin from outside the geofence', async () => {
   const res = await request(app)
     .post('/api/attendance/checkin')
-    // Roughly 5km from the mandir — well outside the 50m radius.
+    // Roughly 5km from the mandir — well outside the 100m radius.
     .send({ memberId, deviceId: 'device-far', lat: 22.36, lng: 73.15 });
 
   expect(res.status).toBe(400);
-  expect(res.body.error).toMatch(/more than 50m from the mandir/i);
+  expect(res.body.error).toMatch(/more than 100m from the mandir/i);
 });
 
 it('prevents duplicate device checkin on the same day', async () => {

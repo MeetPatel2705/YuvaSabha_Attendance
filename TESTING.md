@@ -54,7 +54,8 @@ Share the URL in the members' WhatsApp group. Ask 3-4 members to:
 Watch for:
 - [ ] Everyone physically at the mandir gets a success (Jay Shree
       Swaminarayan screen). If someone inside the hall gets the "more than
-      50m" rejection, note it — indoor GPS drift; we may widen the radius.
+      100m" rejection, note it — indoor GPS drift; we may widen the radius
+      further.
 - [ ] A second person trying on an already-used phone gets the device-block
       message → mark them via admin panel instead.
 - [ ] Before 9 PM / after 10 PM attempts get the time-window rejection.
