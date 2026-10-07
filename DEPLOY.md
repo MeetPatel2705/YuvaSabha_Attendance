@@ -61,9 +61,23 @@ Refuses to run against a Postgres that already has members.
 
 Render's free tier spins the service down after ~15 min idle; the first
 request after that takes ~30-60s to wake it. Data is unaffected (it's in
-Neon). `.github/workflows/keep-alive.yml` pings `/api/health` daily at
-20:55 IST (repo variable `APP_URL` = the Render URL) so the service is warm
-before the 9 PM check-in window.
+Neon).
+
+To keep it warm through check-in, a free cron-job.org job requests
+`https://yuvasabha-attendance.onrender.com/api/health` every 10 minutes
+from 20:00 to 21:50 IST (crontab `*/10 20-21 * * *`, time zone
+Asia/Kolkata), every day — the admin can move check-in to another weekday,
+so it doesn't track which day is configured. Pinging through the whole
+9-10 PM window, not just once before it, stops a quiet 15 minutes mid-window
+from letting the service fall asleep. The first ping of the evening can time
+out on cron-job.org's side while Render wakes up; that's expected, so the
+job has failure notifications turned off.
+
+This used to be a scheduled GitHub Actions workflow. It was moved in
+Oct 2026 because GitHub fired it hours late and disables scheduled workflows
+after 60 days without a commit. `.github/workflows/keep-alive.yml` is now a
+manual "wake it now" button (Actions tab > Keep hosted instance awake > Run
+workflow).
 
 ## Timezone
 

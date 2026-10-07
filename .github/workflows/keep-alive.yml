@@ -1,28 +1,19 @@
 name: Keep hosted instance awake
 
-# Runs every day at 20:55 IST (15:25 UTC) — a few minutes before the 9 PM
-# check-in window normally opens, hitting the side-effect-free /api/health
-# endpoint so the sleeping free-tier Render instance is already awake by the
-# time real members try to check in. (Data lives in Neon Postgres, so a
-# Render sleep/wake cycle costs nothing but the cold-start delay.)
+# Manual "wake it now" button for the free-tier Render backend, which sleeps
+# after ~15 min without requests and takes ~30-60s to wake (Actions tab >
+# Keep hosted instance awake > Run workflow).
 #
-# Runs daily rather than only on Saturdays on purpose: the admin panel can
-# reschedule Yuva Sabha to a different weekday for a given week (see
-# server/lib/settings.js), so this doesn't try to track which day is
-# currently configured — it just stays ahead of 9 PM regardless of which day
-# that turns out to be.
+# The daily schedule no longer lives here. As a scheduled workflow, GitHub
+# fired it 20 min to 7 hours late (often after midnight IST, long after the
+# 9 PM check-in window) and auto-disabled it after 60 days without a commit.
+# The schedule is now an external cron-job.org job — see DEPLOY.md, "Free-tier
+# behavior". With no schedule trigger, GitHub never auto-disables this one.
 #
-# Requires a repository variable APP_URL (Settings > Secrets and variables >
-# Actions > Variables) set to the Render backend's base URL, e.g.
-# https://yuvasabha-attendance.onrender.com
-#
-# Note: GitHub disables scheduled workflows on repos with no commit activity
-# for 60+ days. If this silently stops firing, re-enable it from the
-# Actions tab (or just push a commit).
+# Pings the repository variable APP_URL if it is set, otherwise the production
+# Render URL below (the one the client's VITE_API_BASE_URL points at).
 
 on:
-  schedule:
-    - cron: '25 15 * * *'
   workflow_dispatch: {}
 
 jobs:
@@ -30,4 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping health check endpoint
-        run: curl -fsS --max-time 60 "${{ vars.APP_URL }}/api/health"
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://yuvasabha-attendance.onrender.com' }}
+        run: curl -fsS --max-time 90 --retry 3 --retry-delay 10 --retry-all-errors "$APP_URL/api/health"
